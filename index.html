@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RAZ 点读绘本</title>
+  <!-- 引入 Swiper 轮播组件样式 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html { width: 100%; height: 100%; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+    
+    /* 容器样式：模拟移动端绘本视窗 */
+    .swiper { width: 100%; height: 100%; max-width: 600px; max-height: 900px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .swiper-slide { display: flex; justify-content: center; align-items: center; padding: 20px; }
+    .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+    
+    /* 页码指示器 */
+    .swiper-pagination { font-size: 14px; color: #666; bottom: 10px !important; }
+  </style>
+</head>
+<body>
+
+  <!-- Swiper 绘本容器 -->
+  <div class="swiper">
+    <div class="swiper-wrapper" id="swiper-wrapper"></div>
+    <div class="swiper-pagination"></div>
+  </div>
+
+  <!-- 全局单例音频播放器 -->
+  <audio id="global-audio"></audio>
+
+  <!-- 引入 Swiper 脚本 -->
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script>
+    let bookData = null;
+    const audioPlayer = document.getElementById('global-audio');
+
+    // 1. 读取同级目录下的 config.json
+    fetch('config.json')
+      .then(res => res.json())
+      .then(data => {
+        bookData = data;
+        document.title = data.title;
+        renderBook(data);
+      })
+      .catch(err => console.error('加载 config.json 失败:', err));
+
+    // 2. 动态渲染页面结构
+    function renderBook(data) {
+      const wrapper = document.getElementById('swiper-wrapper');
+      wrapper.innerHTML = data.pages.map((p, index) => `
+        <div class="swiper-slide" data-index="${index}">
+          <img src="${encodeURI(p.image)}" alt="Page ${p.page}" />
+        </div>
+      `).join('');
+
+      // 初始化翻页器
+      const swiper = new Swiper('.swiper', {
+        pagination: { el: '.swiper-pagination', type: 'fraction' },
+        on: {
+          slideChange: function () {
+            playAudioOfPage(this.activeIndex);
+          }
+        }
+      });
+
+      // 首次加载自动尝试播放第 1 页
+      playAudioOfPage(0);
+    }
+
+    // 3. 页面切换时自动切换播放音频
+    function playAudioOfPage(index) {
+      if (!bookData || !bookData.pages[index]) return;
+      const audioUrl = encodeURI(bookData.pages[index].audio);
+      
+      audioPlayer.src = audioUrl;
+      audioPlayer.play().catch(() => {
+        console.log('浏览器阻止了静默无交互自动播放，请点击或滑动页面以触发音频播放。');
+      });
+    }
+  </script>
+</body>
+</html>
