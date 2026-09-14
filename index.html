@@ -3,16 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>RAZ 点读绘本</title>
-  <!-- 引入 Swiper 轮播组件样式 -->
+  <title>RAZ 点读绘本馆</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body, html { width: 100%; height: 100%; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+    body, html { width: 100%; height: 100%; background-color: #f0f2f5; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
     
-    /* 容器样式：模拟移动端绘本视窗 */
-    .swiper { width: 100%; height: 100%; max-width: 600px; max-height: 900px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-    .swiper-slide { display: flex; justify-content: center; align-items: center; padding: 20px; }
+    /* 顶栏选书下拉框 */
+    .header-bar { width: 100%; max-width: 600px; padding: 10px 15px; background: #ffffff; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e5e7eb; z-index: 10; }
+    .book-select { width: 100%; padding: 8px 12px; font-size: 16px; border-radius: 6px; border: 1px solid #d1d5db; background-color: #f9fafb; color: #111827; outline: none; }
+
+    /* 绘本容器 */
+    .swiper { width: 100%; height: calc(100% - 60px); max-width: 600px; max-height: 850px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .swiper-slide { display: flex; justify-content: center; align-items: center; padding: 15px; cursor: pointer; }
     .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
     
     /* 页码指示器 */
@@ -21,42 +24,71 @@
 </head>
 <body>
 
+  <!-- 绘本选择器 -->
+  <div class="header-bar">
+    <select id="book-select" class="book-select" onchange="switchBook(this.value)">
+      <option value="">加载绘本列表中...</option>
+    </select>
+  </div>
+
   <!-- Swiper 绘本容器 -->
   <div class="swiper">
     <div class="swiper-wrapper" id="swiper-wrapper"></div>
     <div class="swiper-pagination"></div>
   </div>
 
-  <!-- 全局单例音频播放器 -->
   <audio id="global-audio"></audio>
 
-  <!-- 引入 Swiper 脚本 -->
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
-    let bookData = null;
+    let allBooks = [];
+    let currentBook = null;
+    let mySwiper = null;
     const audioPlayer = document.getElementById('global-audio');
 
-    // 1. 读取同级目录下的 config.json
+    // 1. 读取 config.json (支持多绘本)
     fetch('config.json')
       .then(res => res.json())
       .then(data => {
-        bookData = data;
-        document.title = data.title;
-        renderBook(data);
+        // 兼容单本和多本 JSON 格式
+        allBooks = Array.isArray(data) ? data : [data];
+        renderSelectMenu();
+        if (allBooks.length > 0) {
+          loadBook(0); // 默认加载第一本
+        }
       })
       .catch(err => console.error('加载 config.json 失败:', err));
 
-    // 2. 动态渲染页面结构
-    function renderBook(data) {
+    // 2. 渲染选书下拉菜单
+    function renderSelectMenu() {
+      const selectEl = document.getElementById('book-select');
+      selectEl.innerHTML = allBooks.map((book, idx) => `
+        <option value="${idx}">${book.title}</option>
+      `).join('');
+    }
+
+    // 3. 切换绘本
+    function switchBook(index) {
+      if (index === "" || !allBooks[index]) return;
+      loadBook(parseInt(index));
+    }
+
+    // 4. 加载指定绘本
+    function loadBook(index) {
+      currentBook = allBooks[index];
+      document.title = currentBook.title;
+
       const wrapper = document.getElementById('swiper-wrapper');
-      wrapper.innerHTML = data.pages.map((p, index) => `
-        <div class="swiper-slide" data-index="${index}">
+      wrapper.innerHTML = currentBook.pages.map((p, pIdx) => `
+        <div class="swiper-slide" onclick="playAudioOfPage(${pIdx})">
           <img src="${encodeURI(p.image)}" alt="Page ${p.page}" />
         </div>
       `).join('');
 
-      // 初始化翻页器
-      const swiper = new Swiper('.swiper', {
+      // 销毁旧 Swiper 实例并重新初始化
+      if (mySwiper) mySwiper.destroy(true, true);
+
+      mySwiper = new Swiper('.swiper', {
         pagination: { el: '.swiper-pagination', type: 'fraction' },
         on: {
           slideChange: function () {
@@ -65,18 +97,18 @@
         }
       });
 
-      // 首次加载自动尝试播放第 1 页
       playAudioOfPage(0);
     }
 
-    // 3. 页面切换时自动切换播放音频
+    // 5. 播放音频
     function playAudioOfPage(index) {
-      if (!bookData || !bookData.pages[index]) return;
-      const audioUrl = encodeURI(bookData.pages[index].audio);
-      
-      audioPlayer.src = audioUrl;
+      if (!currentBook || !currentBook.pages[index]) return;
+      const audioUrl = currentBook.pages[index].audio;
+      if (!audioUrl) return;
+
+      audioPlayer.src = encodeURI(audioUrl);
       audioPlayer.play().catch(() => {
-        console.log('浏览器阻止了静默无交互自动播放，请点击或滑动页面以触发音频播放。');
+        console.log('自动播放被阻止，请点击屏幕交互。');
       });
     }
   </script>
