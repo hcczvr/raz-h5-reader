@@ -9,29 +9,24 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body, html { width: 100%; height: 100%; background-color: #f0f2f5; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
     
-    /* 顶栏选书下拉框 */
     .header-bar { width: 100%; max-width: 600px; padding: 10px 15px; background: #ffffff; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e5e7eb; z-index: 10; }
     .book-select { width: 100%; padding: 8px 12px; font-size: 16px; border-radius: 6px; border: 1px solid #d1d5db; background-color: #f9fafb; color: #111827; outline: none; }
 
-    /* 绘本容器 */
     .swiper { width: 100%; height: calc(100% - 60px); max-width: 600px; max-height: 850px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
     .swiper-slide { display: flex; justify-content: center; align-items: center; padding: 15px; cursor: pointer; }
     .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
     
-    /* 页码指示器 */
     .swiper-pagination { font-size: 14px; color: #666; bottom: 10px !important; }
   </style>
 </head>
 <body>
 
-  <!-- 绘本选择器 -->
   <div class="header-bar">
     <select id="book-select" class="book-select" onchange="switchBook(this.value)">
       <option value="">加载绘本列表中...</option>
     </select>
   </div>
 
-  <!-- Swiper 绘本容器 -->
   <div class="swiper">
     <div class="swiper-wrapper" id="swiper-wrapper"></div>
     <div class="swiper-pagination"></div>
@@ -46,20 +41,18 @@
     let mySwiper = null;
     const audioPlayer = document.getElementById('global-audio');
 
-    // 1. 读取 config.json (支持多绘本)
-    fetch('config.json')
+    // 加上时间戳 ?t=... 强制绕过浏览器与 CDN 缓存
+    fetch('config.json?t=' + new Date().getTime())
       .then(res => res.json())
       .then(data => {
-        // 兼容单本和多本 JSON 格式
         allBooks = Array.isArray(data) ? data : [data];
         renderSelectMenu();
         if (allBooks.length > 0) {
-          loadBook(0); // 默认加载第一本
+          loadBook(0);
         }
       })
       .catch(err => console.error('加载 config.json 失败:', err));
 
-    // 2. 渲染选书下拉菜单
     function renderSelectMenu() {
       const selectEl = document.getElementById('book-select');
       selectEl.innerHTML = allBooks.map((book, idx) => `
@@ -67,13 +60,11 @@
       `).join('');
     }
 
-    // 3. 切换绘本
     function switchBook(index) {
       if (index === "" || !allBooks[index]) return;
       loadBook(parseInt(index));
     }
 
-    // 4. 加载指定绘本
     function loadBook(index) {
       currentBook = allBooks[index];
       document.title = currentBook.title;
@@ -81,11 +72,10 @@
       const wrapper = document.getElementById('swiper-wrapper');
       wrapper.innerHTML = currentBook.pages.map((p, pIdx) => `
         <div class="swiper-slide" onclick="playAudioOfPage(${pIdx})">
-          <img src="${encodeURI(p.image)}" alt="Page ${p.page}" />
+          <img src="${p.image}" alt="Page ${p.page}" />
         </div>
       `).join('');
 
-      // 销毁旧 Swiper 实例并重新初始化
       if (mySwiper) mySwiper.destroy(true, true);
 
       mySwiper = new Swiper('.swiper', {
@@ -100,13 +90,12 @@
       playAudioOfPage(0);
     }
 
-    // 5. 播放音频
     function playAudioOfPage(index) {
       if (!currentBook || !currentBook.pages[index]) return;
       const audioUrl = currentBook.pages[index].audio;
       if (!audioUrl) return;
 
-      audioPlayer.src = encodeURI(audioUrl);
+      audioPlayer.src = audioUrl;
       audioPlayer.play().catch(() => {
         console.log('自动播放被阻止，请点击屏幕交互。');
       });
