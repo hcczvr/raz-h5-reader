@@ -114,6 +114,63 @@
     ]
   },
   {
+    "id": "grande",
+    "title": "Grande",
+    "cover": "https://media.ifreedu.cn/grande/01.jpg",
+    "pages": [
+      {
+        "page": 1,
+        "image": "https://media.ifreedu.cn/grande/01.jpg",
+        "audio": "https://media.ifreedu.cn/grande/page_01.mp3"
+      },
+      {
+        "page": 2,
+        "image": "https://media.ifreedu.cn/grande/02.jpg",
+        "audio": "https://media.ifreedu.cn/grande/page_02.mp3"
+      },
+      {
+        "page": 3,
+        "image": "https://media.ifreedu.cn/grande/03.jpg",
+        "audio": "https://media.ifreedu.cn/grande/page_03.mp3"
+      },
+      {
+        "page": 4,
+        "image": "https://media.ifreedu.cn/grande/04.jpg",
+        "audio": "https://media.ifreedu.cn/grande/page_04.mp3"
+      },
+      {
+        "page": 5,
+        "image": "https://media.ifreedu.cn/grande/05.jpg",
+        "audio": "https://media.ifreedu.cn/grande/page_05.mp3"
+      },
+      {
+        "page": 6,
+        "image": "https://media.ifreedu.cn/grande/06.jpg",
+        "audio": "https://media.ifreedu.cn/grande/page_06.mp3"
+      },
+      {
+        "page": 7,
+        "image": "https://media.ifreedu.cn/grande/07.jpg",
+        "audio": "https://media.ifreedu.cn/grande/page_07.mp3"
+      },
+      {
+        "page": 8,
+        "image": "https://media.ifreedu.cn/grande/08.jpg",
+        "audio": "https://media.ifreedu.cn/grande/page_08.mp3"
+      },
+      {
+        "page": 9,
+        "image": "https://media.ifreedu.cn/grande/09.jpg",
+        "audio": "https://media.ifreedu.cn/grande/page_09.mp3"
+      },
+      {
+        "page": 10,
+        "image": "https://media.ifreedu.cn/grande/10.jpg",
+        "audio": "https://media.ifreedu.cn/grande/page_10.mp3"
+      }
+    ]
+  },
+  {
     "id": "los_juguetes",
     "title": "Los juguetes",
     "cover": "https://media.ifreedu.cn/los_juguetes/01.jpg",
