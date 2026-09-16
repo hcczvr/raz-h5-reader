@@ -1,0 +1,9 @@
+# 忽略配置密钥
+.env
+
+# 忽略本地资源目录（媒体文件已在 R2，无需传 GitHub）
+/books/
+*image*/
+*audio*/
+*.bat
+*.txt
