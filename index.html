@@ -1,167 +1,183 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>RAZ 点读绘本馆</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body,
-    html {
-      width: 100%;
-      height: 100%;
-      background-color: #f0f2f5;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-
-    .header-bar {
-      width: 100%;
-      max-width: 600px;
-      padding: 10px 15px;
-      background: #ffffff;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid #e5e7eb;
-      z-index: 10;
-    }
-
-    .book-select {
-      width: 100%;
-      padding: 8px 12px;
-      font-size: 16px;
-      border-radius: 6px;
-      border: 1px solid #d1d5db;
-      background-color: #f9fafb;
-      color: #111827;
-      outline: none;
-    }
-
-    .swiper {
-      width: 100%;
-      height: calc(100% - 60px);
-      max-width: 600px;
-      max-height: 850px;
-      background: #ffffff;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    }
-
-    .swiper-slide {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 15px;
-      cursor: pointer;
-    }
-
-    .swiper-slide img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      border-radius: 8px;
-    }
-
-    .swiper-pagination {
-      font-size: 14px;
-      color: #666;
-      bottom: 10px !important;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RAZ 分级阅读器</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between select-none overflow-x-hidden font-sans">
 
-<body>
+    <!-- 1. 毛玻璃悬浮顶栏 (Top Glass Bar) -->
+    <header class="fixed top-4 left-4 right-4 z-50 max-w-4xl mx-auto flex items-center justify-between px-4 py-2.5 rounded-2xl bg-slate-800/70 backdrop-blur-md border border-white/10 shadow-xl shadow-black/30">
+        <!-- 返回门户 -->
+        <a href="index.html" class="flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-200 hover:text-white transition-colors group">
+            <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-xs group-hover:-translate-x-0.5 transition-transform">⬅️</span>
+            <span>返回门户</span>
+        </a>
 
-  <div class="header-bar">
-    <select id="book-select" class="book-select" onchange="switchBook(this.value)">
-      <option value="">加载绘本列表中...</option>
-    </select>
-  </div>
-
-  <div class="swiper">
-    <div class="swiper-wrapper" id="swiper-wrapper"></div>
-    <div class="swiper-pagination"></div>
-  </div>
-
-  <audio id="global-audio"></audio>
-
-  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-  <script>
-    let allBooks = [];
-    let currentBook = null;
-    let mySwiper = null;
-    const audioPlayer = document.getElementById('global-audio');
-
-    // 加上时间戳 ?t=... 强制绕过浏览器与 CDN 缓存
-    fetch('https://media.ifreedu.cn/config.json?t=' + Date.now())
-      .then(response => response.json())
-      .then(data => {
-        allBooks = Array.isArray(data) ? data : [data];
-        renderSelectMenu();
-        if (allBooks.length > 0) {
-          loadBook(0);
-        }
-      })
-      .catch(err => console.error('加载 config.json 失败:', err));
-
-    function renderSelectMenu() {
-      const selectEl = document.getElementById('book-select');
-      selectEl.innerHTML = allBooks.map((book, idx) => `
-        <option value="${idx}">${book.title}</option>
-      `).join('');
-    }
-
-    function switchBook(index) {
-      if (index === "" || !allBooks[index]) return;
-      loadBook(parseInt(index));
-    }
-
-    function loadBook(index) {
-      currentBook = allBooks[index];
-      document.title = currentBook.title;
-
-      const wrapper = document.getElementById('swiper-wrapper');
-      wrapper.innerHTML = currentBook.pages.map((p, pIdx) => `
-        <div class="swiper-slide" onclick="playAudioOfPage(${pIdx})">
-          <img src="${p.image}" alt="Page ${p.page}" />
+        <!-- 下拉菜单切换绘本 -->
+        <div class="flex items-center gap-2">
+            <select id="book-select" onchange="switchBook(this.value)" 
+                    class="bg-slate-900/90 text-slate-200 text-xs sm:text-sm font-medium px-3 py-1.5 rounded-xl border border-white/15 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                <option value="">加载绘本列表中...</option>
+            </select>
         </div>
-      `).join('');
+    </header>
 
-      if (mySwiper) mySwiper.destroy(true, true);
+    <!-- 2. 核心绘本舞台 (Stage) -->
+    <main class="flex-1 flex items-center justify-center pt-20 pb-24 px-4">
+        <div class="relative max-w-3xl w-full flex items-center justify-center">
+            
+            <!-- 绘本图片显示区（点击图片直接点读/重播） -->
+            <div onclick="replayAudio()" 
+                 class="relative bg-slate-800/40 rounded-3xl p-2 sm:p-4 border border-white/10 shadow-2xl overflow-hidden max-h-[72vh] flex items-center justify-center cursor-pointer group">
+                
+                <img id="page-image" src="" alt="绘本页面" 
+                     class="max-h-[68vh] w-auto object-contain rounded-2xl shadow-lg transition-transform duration-200 group-active:scale-[0.99] hidden">
+                
+                <!-- 点击重播提示 -->
+                <div class="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm text-white/80 text-[10px] px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                    🔊 点击点读
+                </div>
+            </div>
 
-      mySwiper = new Swiper('.swiper', {
-        pagination: { el: '.swiper-pagination', type: 'fraction' },
-        on: {
-          slideChange: function () {
-            playAudioOfPage(this.activeIndex);
+        </div>
+    </main>
+
+    <!-- 3. 毛玻璃悬浮底栏 (Bottom Glass Bar) -->
+    <footer class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-auto px-5 py-2.5 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/15 shadow-2xl flex items-center gap-4 sm:gap-6">
+        
+        <!-- 上一页 -->
+        <button id="btn-prev" onclick="prevPage()"
+                class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 disabled:opacity-20 disabled:pointer-events-none flex items-center justify-center transition-all text-xs font-bold">
+            ◀
+        </button>
+
+        <!-- 页码指示器 -->
+        <div class="text-xs sm:text-sm font-semibold tracking-wider text-slate-200 min-w-[50px] text-center">
+            <span id="page-current" class="text-indigo-400">0</span>
+            <span class="text-slate-500">/</span>
+            <span id="page-total">0</span>
+        </div>
+
+        <!-- 播放/重播音频按钮 -->
+        <button onclick="replayAudio()"
+                class="w-11 h-11 rounded-full bg-indigo-600 hover:bg-indigo-500 active:scale-95 flex items-center justify-center shadow-lg shadow-indigo-600/40 transition-all text-base">
+            🔊
+        </button>
+
+        <!-- 下一页 -->
+        <button id="btn-next" onclick="nextPage()"
+                class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 disabled:opacity-20 disabled:pointer-events-none flex items-center justify-center transition-all text-xs font-bold">
+            ▶
+        </button>
+
+    </footer>
+
+    <!-- 全局音频播放器 -->
+    <audio id="global-audio"></audio>
+
+    <!-- 核心业务逻辑（继承老代码的稳定解析逻辑） -->
+    <script>
+        let allBooks = [];
+        let currentBook = null;
+        let currentPageIndex = 0;
+        const audioPlayer = document.getElementById('global-audio');
+        const imgEl = document.getElementById('page-image');
+
+        // Fetch 加载数据
+        fetch('config.json?t=' + Date.now())
+          .then(response => response.json())
+          .then(data => {
+            // 兼容 Portal 格式 (data.picture_books) 与 纯数组格式[cite: 1, 2]
+            allBooks = data.picture_books || (Array.isArray(data) ? data : [data]);
+            renderSelectMenu();
+            if (allBooks.length > 0) {
+              loadBook(0);
+            }
+          })
+          .catch(err => {
+            console.error('加载 config.json 失败:', err);
+            // 备用兜底：如果直接打开本地文件限制 fetch，尝试从远程加载
+            fetch('https://media.ifreedu.cn/config.json?t=' + Date.now())[cite: 2]
+              .then(res => res.json())
+              .then(data => {
+                allBooks = data.picture_books || (Array.isArray(data) ? data : [data]);
+                renderSelectMenu();
+                if (allBooks.length > 0) loadBook(0);
+              });
+          });
+
+        function renderSelectMenu() {
+          const selectEl = document.getElementById('book-select');
+          selectEl.innerHTML = allBooks.map((book, idx) => `
+            <option value="${idx}">${book.title}</option>
+          `).join('');
+        }
+
+        function switchBook(index) {
+          if (index === "" || !allBooks[index]) return;
+          loadBook(parseInt(index));
+        }
+
+        function loadBook(index) {
+          currentBook = allBooks[index];
+          document.title = currentBook.title || 'RAZ 绘本馆';
+          currentPageIndex = 0;
+          renderPage();
+        }
+
+        function renderPage() {
+          if (!currentBook || !currentBook.pages || currentBook.pages.length === 0) return;
+
+          const pageData = currentBook.pages[currentPageIndex];
+
+          // 更新图片与状态
+          imgEl.src = pageData.image;
+          imgEl.classList.remove('hidden');
+
+          // 更新页码指示
+          document.getElementById('page-current').innerText = currentPageIndex + 1;
+          document.getElementById('page-total').innerText = currentBook.pages.length;
+
+          // 更新按钮禁用状态
+          document.getElementById('btn-prev').disabled = currentPageIndex === 0;
+          document.getElementById('btn-next').disabled = currentPageIndex === currentBook.pages.length - 1;
+
+          // 自动播放当前页音频
+          playAudioOfPage(currentPageIndex);
+        }
+
+        function prevPage() {
+          if (currentPageIndex > 0) {
+            currentPageIndex--;
+            renderPage();
           }
         }
-      });
 
-      playAudioOfPage(0);
-    }
+        function nextPage() {
+          if (currentBook && currentPageIndex < currentBook.pages.length - 1) {
+            currentPageIndex++;
+            renderPage();
+          }
+        }
 
-    function playAudioOfPage(index) {
-      if (!currentBook || !currentBook.pages[index]) return;
-      const audioUrl = currentBook.pages[index].audio;
-      if (!audioUrl) return;
+        function replayAudio() {
+          playAudioOfPage(currentPageIndex);
+        }
 
-      audioPlayer.src = audioUrl;
-      audioPlayer.play().catch(() => {
-        console.log('自动播放被阻止，请点击屏幕交互。');
-      });
-    }
-  </script>
+        function playAudioOfPage(index) {
+          if (!currentBook || !currentBook.pages[index]) return;
+          const audioUrl = currentBook.pages[index].audio;
+          if (!audioUrl) return;
+
+          audioPlayer.src = audioUrl;
+          audioPlayer.play().catch(err => {
+            console.log('自动播放被浏览器拦截，点击页面任意位置或按键可播放。');
+          });
+        }
+    </script>
 </body>
-
 </html>
